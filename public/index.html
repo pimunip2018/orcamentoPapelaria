@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Sistema de Orçamentos - Papelaria Personalizada</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        /* Seu CSS existente aqui */
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,.2);
+            overflow: hidden;
+        }
+        .tabs {
+            display: flex;
+            background: #f7f7f7;
+            border-bottom: 2px solid #ddd;
+        }
+        .tab {
+            flex: 1;
+            padding: 18px;
+            border: none;
+            background: #e9ecef;
+            cursor: pointer;
+            font-weight: 600;
+            text-align: center;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+        .tab:hover { background: #dee2e6; }
+        .tab.active {
+            background: #fff;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+        .tab-content { display: none; padding: 25px; }
+        .tab-content.active { display: block; }
+
+        h2 { margin-bottom: 20px; color: #667eea; font-size: 24px; }
+        h3 { margin-bottom: 12px; color: #667eea; font-size: 18px; }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+        .form-grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+        .form-group { display: flex; flex-direction: column; }
+        label { font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #495057; }
+        input, select {
+            padding: 10px;
+            border-radius: 6px;
+            border: 2px solid #dee2e6;
+            font-size: 14px;
+            transition: border 0.3s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        input[readonly] { background: #f8f9fa; cursor: not-allowed; }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-top: 8px;
+            transition: all 0.3s;
+        }
+        .btn-primary { background: #667eea; color: #fff; }
+        .btn-primary:hover { background: #5568d3; transform: translateY(-2px); }
+        .btn-success { background: #28a745; color: #fff; }
+        .btn-success:hover { background: #218838; transform: translateY(-2px); }
+        .btn-warning { background: #ffc107; color: #212529; font-size: 13px; padding: 7px 14px; }
+        .btn-warning:hover { background: #e0a800; }
+        .btn-danger { background: #dc3545; color: #fff; font-size: 13px; padding: 7px 14px; }
+        .btn-danger:hover { background: #c82333; }
+        .btn-info { background: #17a2b8; color: #fff; }
+        .btn-info:hover { background: #138496; transform: translateY(-2px); }
+
+        .grid-container { margin-top: 20px; overflow-x: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.1); }
+        table { width: 100%; border-collapse: collapse; }
+        thead { background: #667eea; color: #fff; }
+        th {
+            padding: 12px;
+            border-bottom: 2px solid #5568d3;
+            font-size: 14px;
+            text-align: center;
+            font-weight: 600;
+        }
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 13px;
+            text-align: center;
+        }
+        tbody tr:nth-child(odd) { background: #f8f9fa; }
+        tbody tr:nth-child(even) { background: #fff; }
+        tbody tr:hover { background: #e3f2fd; }
+
+        .empty-state { text-align: center; padding: 30px; color: #6c757d; }
+
+        .secao {
+            margin-top: 20px;
+            padding: 18px;
+            border-radius: 8px;
+            border: 2px solid #dee2e6;
+            background: #f8f9fa;
+        }
+
+        .item-card {
+            background: #fff;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,.08);
+        }
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .item-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 10px;
+            font-size: 13px;
+        }
+        .item-label { font-weight: 600; color: #6c757d; font-size: 11px; }
+        .item-value { font-size: 13px; color: #212529; }
+
+        .resultado {
+            display: none;
+            margin-top: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .resultado h3 { color: #fff; margin-bottom: 15px; }
+        .resultado-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .resultado-bloco {
+            background: rgba(255,255,255,.2);
+            padding: 12px;
+            border-radius: 6px;
+            backdrop-filter: blur(10px);
+        }
+        .resultado-label { font-size: 13px; opacity: 0.9; margin-bottom: 5px; }
+        .resultado-valor { font-size: 22px; font-weight: 700; }
+
+        .btn-group { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
+        .orcamento-card {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 12px;
+            background: #fff;
+            box-shadow: 0 2px 6px rgba(0,0,0,.08);
+        }
+        .orcamento-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .orcamento-header strong { font-size: 15px; color: #212529; }
+        .orcamento-info {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        @media(max-width:768px){
+            .tabs { flex-direction: column; }
+            .form-grid, .form-grid-2col { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab(event,'produtos')">📦 Cadastro de Produtos</button>
+        <button class="tab" onclick="switchTab(event,'orcamento')">💰 Criar Orçamento</button>
+        <button class="tab" onclick="switchTab(event,'historico')">📋 Histórico de Orçamentos</button>
+    </div>
+
+    <!-- CADASTRO DE PRODUTOS -->
+    <div id="produtos" class="tab-content active">
+        <h2>Cadastro de Produtos (Materiais)</h2>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="quantidade">Quantidade no pacote *</label>
+                <input type="number" id="quantidade" min="1" placeholder="Ex: 50">
+            </div>
+            <div class="form-group">
+                <label for="descricao">Descrição *</label>
+                <input type="text" id="descricao" placeholder="Ex: Papel fotográfico A4">
+            </div>
+            <div class="form-group">
+                <label for="precoPacote">Preço do pacote (R$) *</label>
+                <input type="number" id="precoPacote" min="0" step="0.01" placeholder="Ex: 12.90">
+            </div>
+            <div class="form-group">
+                <label for="precoAnterior">Preço anterior (R$)</label>
+                <input type="number" id="precoAnterior" min="0" step="0.01" placeholder="0.00">
+            </div>
+            <div class="form-group">
+                <label for="loja">Loja *</label>
+                <input type="text" id="loja" placeholder="Ex: Armarinhos X">
+            </div>
+            <div class="form-group">
+                <label for="valorFinalUnitario">Valor unitário (R$)</label>
+                <input type="number" id="valorFinalUnitario" step="0.01" readonly>
+            </div>
+        </div>
+        <input type="hidden" id="produtoIdEdicao" value="">
+        <button class="btn btn-primary" id="btnSalvarProduto" onclick="salvarProduto()">➕ Adicionar Produto</button>
+        <button class="btn btn-warning" id="btnCancelarProduto" onclick="cancelarEdicaoProduto()" style="display:none;">✖ Cancelar</button>
+
+        <div class="grid-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Qtd pacote</th>
+                        <th>Descrição</th>
+                        <th>Preço pacote</th>
+                        <th>Preço anterior</th>
+                        <th>Loja</th>
+                        <th>Valor unitário</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="corpoProdutos">
+                    <tr><td colspan="7" class="empty-state">Nenhum produto cadastrado</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- CRIAR ORÇAMENTO -->
+    <div id="orcamento" class="tab-content">
+        <h2>Criar Orçamento</h2>
+
+        <div class="form-grid-2col">
+            <div class="form-group">
+                <label for="nomeCliente">Cliente *</label>
+                <input type="text" id="nomeCliente" placeholder="Nome do cliente">
+            </div>
+            <div class="form-group">
+                <label for="descricaoOrcamento">Descrição do orçamento</label>
+                <input type="text" id="descricaoOrcamento" placeholder="Ex: Festa infantil">
+            </div>
+        </div>
+
+        <div class="secao">
+            <h3>1. Materiais do produto</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="materialSelecionado">Material</label>
+                    <select id="materialSelecionado">
+                        <option value="">Selecione um material</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="quantidadeMaterial">Quantidade</label>
+                    <input type="number" id="quantidadeMaterial" min="1" placeholder="Ex: 10">
+                </div>
+                <div class="form-group">
+                    <label for="folhasImpressas">Folhas impressas (R$ 0,30/un)</label>
+                    <input type="number" id="folhasImpressas" min="0" placeholder="Ex: 5" value="0">
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="adicionarMaterialAoProduto()">➕ Adicionar material</button>
+
+            <div style="margin-top:15px;" id="listaMateriais">
+                <div class="empty-state">Nenhum material adicionado</div>
+            </div>
+        </div>
+
+        <div class="secao">
+            <h3>2. Produto do orçamento</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="nomeProdutoOrcamento">Nome do produto *</label>
+                    <input type="text" id="nomeProdutoOrcamento" placeholder="Ex: Kit convite">
+                </div>
+                <div class="form-group">
+                    <label for="quantidadeProduto">Quantidade *</label>
+                    <input type="number" id="quantidadeProduto" min="1" placeholder="Ex: 20">
+                </div>
+                <div class="form-group">
+                    <label for="percentualLucro">% de lucro *</label>
+                    <input type="number" id="percentualLucro" min="0" step="0.01" placeholder="Ex: 30">
+                </div>
+            </div>
+            <input type="hidden" id="produtoOrcamentoIdEdicao" value="">
+            <button class="btn btn-success" id="btnAdicionarProdutoOrc" onclick="adicionarProdutoAoOrcamento()">✅ Adicionar ao orçamento</button>
+            <button class="btn btn-warning" id="btnCancelarProdutoOrc" onclick="cancelarEdicaoProdutoOrcamento()" style="display:none;">✖ Cancelar</button>
+        </div>
+
+        <div class="secao">
+            <h3>Produtos do orçamento</h3>
+            <div id="listaProdutosOrcamento">
+                <div class="empty-state">Nenhum produto no orçamento</div>
+            </div>
+        </div>
+
+        <input type="hidden" id="orcamentoIdEdicao" value="">
+        <button class="btn btn-success" onclick="calcularOrcamento()">🧮 Calcular orçamento</button>
+        <button class="btn btn-primary" id="btnSalvarOrcamento" onclick="salvarOrcamentoNoHistorico()">💾 Salvar orçamento</button>
+        <button class="btn btn-info" onclick="gerarPDF()" id="btnGerarPDF" style="display:none;">📄 Gerar PDF</button>
+
+        <div id="resultadoCalculo" class="resultado">
+            <h3>Resumo do orçamento</h3>
+            <div class="resultado-grid">
+                <div class="resultado-bloco">
+                    <div class="resultado-label">Custo total materiais</div>
+                    <div class="resultado-valor" id="custoTotalMateriais">R$ 0,00</div>
+                </div>
+                <div class="resultado-bloco">
+                    <div class="resultado-label">Custo total folhas</div>
+                    <div class="resultado-valor" id="custoTotalFolhas">R$ 0,00</div>
+                </div>
+                <div class="resultado-bloco">
+                    <div class="resultado-label">Lucro aplicado</div>
+                    <div class="resultado-valor" id="lucroAplicado">R$ 0,00</div>
+                </div>
+                <div class="resultado-bloco">
+                    <div class="resultado-label">Valor final</div>
+                    <div class="resultado-valor" id="valorFinalOrcamento">R$ 0,00</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HISTÓRICO DE ORÇAMENTOS -->
+    <div id="historico" class="tab-content">
+        <h2>Histórico de Orçamentos</h2>
+        <div id="listaHistoricoOrcamentos">
+            <div class="empty-state">Nenhum orçamento salvo</div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Variáveis globais para o estado do frontend
+let produtos = []; // Lista de materiais cadastrados
+let materiaisTemporarios = []; // Materiais do produto atual sendo montado no orçamento
+let produtosOrcamento = []; // Produtos finais do orçamento atual
+let historicoOrcamentos = []; // Histórico de orçamentos carregados do backend
+const PRECO_FOLHA = 0.30; // Custo fixo por folha impressa
+
+// URL base da sua API Node.js.
+// No Render, se o frontend e backend estiverem no mesmo serviço (monolítico), a URL será '/'.
+// Se forem serviços separados (Static Site + Web Service), será a URL do seu Web Service Node.js.
+const API_BASE_URL = ''; // Vazio para ser relativo (mesmo domínio) ou 'http://localhost:3000' para teste local
+
+// Função utilitária para fazer requisições ao backend
+async function fetchData(endpoint, method = 'GET', data = null, id = null) {
+    let url = `${API_BASE_URL}/${endpoint}`;
+    if (id) {
+        url += `/${id}`; // Para PUT/DELETE/GET por ID
+    }
+
+    const options = {
+        method,
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    };
+    if (data) {
+        options.body = JSON.stringify(data);
+    }
+
+    try {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido' }));
+            throw new Error(errorData.message || `Erro na requisição: ${response.status}`);
+        }
+        // DELETE (204 No Content) não retorna JSON
+        if (response.status === 204) {
+            return null;
+        }
+        return await response.json();
+    } catch (error) {
+        alert(`Erro: ${error.message}`);
+        console.error(`Erro na requisição ${method} ${endpoint} (ID: ${id}):`, error);
+        return null;
+    }
+}
+
+// ========== CARREGAMENTO INICIAL DE DADOS ==========
+async function carregarDados() {
+    // Carregar Produtos
+    const fetchedProdutos = await fetchData('produtos');
+    if (fetchedProdutos) {
+        produtos = fetchedProdutos;
+        atualizarGridProdutos();
+        atualizarSelectMateriais();
+    }
+
+    // Carregar Histórico de Orçamentos
+    const fetchedOrcamentos = await fetchData('orcamentos');
+    if (fetchedOrcamentos) {
+        historicoOrcamentos = fetchedOrcamentos;
+        atualizarHistoricoOrcamentos();
+    }
+}
+
+// ========== TABS ==========
+function switchTab(event, tabName) {
+    const tabs = document.querySelectorAll('.tab');
+    const contents = document.querySelectorAll('.tab-content');
+    tabs.forEach(t => t.classList.remove('active'));
+    contents.forEach(c => c.classList.remove('active'));
+
+    event.target.classList.add('active');
+    document.getElementById(tabName).classList.add('active');
+
+    if (tabName === 'orcamento') {
+        atualizarSelectMateriais();
+        atualizarListaProdutosOrcamento();
+    }
+    if (tabName === 'historico') {
+        atualizarHistoricoOrcamentos();
+    }
+}
+
+// ========== PRODUTOS (CADASTRO DE MATERIAIS) ==========
+async function salvarProduto() {
+    const quantidade = parseFloat(document.getElementById('quantidade').value);
+    const descricao = document.getElementById('descricao').value.trim();
+    const precoPacote = parseFloat(document.getElementById('precoPacote').value);
+    const precoAnterior = parseFloat(document.getElementById('precoAnterior').value) || 0;
+    const loja = document.getElementById('loja').value.trim();
+    const idEdicao = document.getElementById('produtoIdEdicao').value;
+
+    if (!quantidade || quantidade <= 0 || !descricao || isNaN(precoPacote) || !loja) {
+        alert('Preencha quantidade, descrição, preço do pacote e loja.');
+        return;
+    }
+
+    const valorFinalUnitario = precoPacote / quantidade;
+    document.getElementById('valorFinalUnitario').value = valorFinalUnitario.toFixed(2);
+
+    const produtoData = {
+        quantidade,
+        descricao,
+        precoPacote,
+        precoAnterior,
+        loja,
+        valorFinalUnitario
+    };
+
+    let result;
+    if (idEdicao) {
+        result = await fetchData(`produtos`, 'PUT', produtoData, idEdicao);
+        if (result) {
+            const index = produtos.findIndex(p => p._id == idEdicao); // MongoDB usa _id
+            if (index !== -1) produtos[index] = result;
+            alert('Produto atualizado.');
+        }
+    } else {
+        result = await fetchData('produtos', 'POST', produtoData);
+        if (result) {
+            produtos.push(result);
+            alert('Produto adicionado.');
+        }
+    }
+
+    if (result) {
+        atualizarGridProdutos();
+        atualizarSelectMateriais();
+        limparFormularioProduto();
+    }
+}
+
+function editarProduto(id) {
+    const prod = produtos.find(p => p._id === id); // MongoDB usa _id
+    if (!prod) return;
+
+    document.getElementById('quantidade').value = prod.quantidade;
+    document.getElementById('descricao').value = prod.descricao;
+    document.getElementById('precoPacote').value = prod.precoPacote.toFixed(2);
+    document.getElementById('precoAnterior').value = prod.precoAnterior.toFixed(2);
+    document.getElementById('loja').value = prod.loja;
+    document.getElementById('valorFinalUnitario').value = prod.valorFinalUnitario.toFixed(2);
+    document.getElementById('produtoIdEdicao').value = prod._id; // MongoDB usa _id
+
+    document.getElementById('btnSalvarProduto').textContent = '💾 Salvar Alterações';
+    document.getElementById('btnCancelarProduto').style.display = 'inline-block';
+    document.getElementById('produtos').scrollIntoView({behavior:'smooth'});
+}
+
+function cancelarEdicaoProduto() {
+    limparFormularioProduto();
+}
+
+function atualizarGridProdutos() {
+    const tbody = document.getElementById('corpoProdutos');
+    if (produtos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Nenhum produto cadastrado</td></tr>';
+        return;
+    }
+    tbody.innerHTML = produtos.map(p => `
+        <tr>
+            <td>${p.quantidade}</td>
+            <td>${p.descricao}</td>
+            <td>R$ ${p.precoPacote.toFixed(2)}</td>
+            <td>R$ ${p.precoAnterior.toFixed(2)}</td>
+            <td>${p.loja}</td>
+            <td>R$ ${p.valorFinalUnitario.toFixed(2)}</td>
+            <td><div class="btn-group">
+                <button class="btn btn-warning" onclick="editarProduto('${p._id}')">✏️</button>
+                <button class="btn btn-danger" onclick="removerProduto('${p._id}')">🗑️</button>
+            </div></td>
+        </tr>
+    `).join('');
+}
+
+async function removerProduto(id) {
+    if (!confirm('Remover este produto?')) return;
+    const result = await fetchData('produtos', 'DELETE', null, id);
+    if (result === null) { // Sucesso (204 No Content) ou erro
+        produtos = produtos.filter(p => p._id !== id);
+        atualizarGridProdutos();
+        atualizarSelectMateriais();
+        alert('Produto removido.');
+    }
+}
+
+function limparFormularioProduto() {
+    document.getElementById('quantidade').value = '';
+    document.getElementById('descricao').value = '';
+    document.getElementById('precoPacote').value = '';
+    document.getElementById('precoAnterior').value = '';
+    document.getElementById('loja').value = '';
+    document.getElementById('valorFinalUnitario').value = '';
+    document.getElementById('produtoIdEdicao').value = '';
+    document.getElementById('btnSalvarProduto').textContent = '➕ Adicionar Produto';
+    document.getElementById('btnCancelarProduto').style.display = 'none';
+}
+
+// ========== MATERIAIS (PARA O PRODUTO DO ORÇAMENTO ATUAL) ==========
+function atualizarSelectMateriais() {
+    const sel = document.getElementById('materialSelecionado');
+    sel.innerHTML = '<option value="">Selecione um material</option>';
+    produtos.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p._id; // MongoDB usa _id
+        opt.textContent = `${p.descricao} - R$ ${p.valorFinalUnitario.toFixed(2)}/un`;
+        sel.appendChild(opt);
+    });
+}
+
+function adicionarMaterialAoProduto() {
+    const idMat = document.getElementById('materialSelecionado').value; // String do _id
+    const qtd = parseFloat(document.getElementById('quantidadeMaterial').value);
+    const folhas = parseFloat(document.getElementById('folhasImpressas').value) || 0;
+
+    if (!idMat || !qtd) {
+        alert('Selecione o material e informe a quantidade.');
+        return;
+    }
+
+    const mat = produtos.find(p => p._id === idMat); // MongoDB usa _id
+    if (!mat) {
+        alert('Material não encontrado.');
+        return;
+    }
+
+    const custoMaterial = mat.valorFinalUnitario * qtd;
+    const custoFolhas = folhas * PRECO_FOLHA;
+    const item = {
+        _id: new mongoose.Types.ObjectId().toString(), // Gerar um novo ObjectId para o subdocumento
+        material: { // Inclui os dados do material para o frontend
+            _id: mat._id,
+            descricao: mat.descricao,
+            valorFinalUnitario: mat.valorFinalUnitario
+        },
+        materialId: mat._id, // ID do material para o backend
+        quantidade: qtd,
+        folhasImpressas: folhas,
+        custoMaterial: custoMaterial,
+        custoFolhas: custoFolhas,
+        custoTotal: custoMaterial + custoFolhas
+    };
+    materiaisTemporarios.push(item);
+    atualizarListaMateriais();
+    document.getElementById('quantidadeMaterial').value = '';
+    document.getElementById('folhasImpressas').value = '0';
+}
+
+function atualizarListaMateriais() {
+    const div = document.getElementById('listaMateriais');
+    if (materiaisTemporarios.length === 0) {
+        div.innerHTML = '<div class="empty-state">Nenhum material adicionado</div>';
+        return;
+    }
+    div.innerHTML = materiaisTemporarios.map(m => `
+        <div class="item-card">
+            <div class="item-header">
+                <strong>${m.material.descricao}</strong>
+                <button class="btn btn-danger" onclick="removerMaterial('${m._id}')">X</button>
+            </div>
+            <div class="item-info">
+                <div><div class="item-label">Qtd</div><div class="item-value">${m.quantidade}</div></div>
+                <div><div class="item-label">Custo material</div><div class="item-value">R$ ${m.custoMaterial.toFixed(2)}</div></div>
+                <div><div class="item-label">Folhas</div><div class="item-value">${m.folhasImpressas} (R$ ${m.custoFolhas.toFixed(2)})</div></div>
+                <div><div class="item-label">Custo total</div><div class="item-value">R$ ${m.custoTotal.toFixed(2)}</div></div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function removerMaterial(id) {
+    materiaisTemporarios = materiaisTemporarios.filter(m => m._id !== id);
+    atualizarListaMateriais();
+}
+
+// ========== PRODUTOS DO ORÇAMENTO ATUAL ==========
+function adicionarProdutoAoOrcamento() {
+    const nomeProd = document.getElementById('nomeProdutoOrcamento').value.trim();
+    const qtdProd = parseFloat(document.getElementById('quantidadeProduto').value);
+    const perc = parseFloat(document.getElementById('percentualLucro').value);
+    const idEdicao = document.getElementById('produtoOrcamentoIdEdicao').value;
+
+    if (!nomeProd || !qtdProd || isNaN(perc)) {
+        alert('Informe nome, quantidade e % de lucro.');
+        return;
+    }
+    if (materiaisTemporarios.length === 0) {
+        alert('Adicione pelo menos um material.');
+        return;
+    }
+
+    let custoPorUnidade = 0;
+    materiaisTemporarios.forEach(m => custoPorUnidade += m.custoTotal);
+
+    if (idEdicao) {
+        const index = produtosOrcamento.findIndex(p => p._id == idEdicao);
+        if (index !== -1) {
+            produtosOrcamento[index] = {
+                _id: idEdicao,
+                nome: nomeProd,
+                quantidade: qtdProd,
+                percentualLucro: perc,
+                materiais: JSON.parse(JSON.stringify(materiaisTemporarios)),
+                custoUnitario: custoPorUnidade,
+                custoTotal: custoPorUnidade * qtdProd
+            };
+            alert('Produto do orçamento atualizado.');
+        }
+    } else {
+        const produto = {
+            _id: new mongoose.Types.ObjectId().toString(), // ID único para o subdocumento
+            nome: nomeProd,
+            quantidade: qtdProd,
+            percentualLucro: perc,
+            materiais: JSON.parse(JSON.stringify(materiaisTemporarios)),
+            custoUnitario: custoPorUnidade,
+            custoTotal: custoPorUnidade * qtdProd
+        };
+        produtosOrcamento.push(produto);
+        alert('Produto adicionado ao orçamento.');
+    }
+
+    atualizarListaProdutosOrcamento();
+    limparFormularioProdutoOrcamento();
+}
+
+function editarProdutoOrcamento(id) {
+    const prod = produtosOrcamento.find(p => p._id === id);
+    if (!prod) return;
+
+    document.getElementById('nomeProdutoOrcamento').value = prod.nome;
+    document.getElementById('quantidadeProduto').value = prod.quantidade;
+    document.getElementById('percentualLucro').value = prod.percentualLucro;
+    document.getElementById('produtoOrcamentoIdEdicao').value = prod._id;
+
+    materiaisTemporarios = JSON.parse(JSON.stringify(prod.materiais));
+    atualizarListaMateriais();
+
+    document.getElementById('btnAdicionarProdutoOrc').textContent = '💾 Salvar Alterações';
+    document.getElementById('btnCancelarProdutoOrc').style.display = 'inline-block';
+    window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function cancelarEdicaoProdutoOrcamento() {
+    limparFormularioProdutoOrcamento();
+}
+
+function limparFormularioProdutoOrcamento() {
+    materiaisTemporarios = [];
+    atualizarListaMateriais();
+    document.getElementById('nomeProdutoOrcamento').value = '';
+    document.getElementById('quantidadeProduto').value = '';
+    document.getElementById('percentualLucro').value = '';
+    document.getElementById('produtoOrcamentoIdEdicao').value = '';
+    document.getElementById('btnAdicionarProdutoOrc').textContent = '✅ Adicionar ao orçamento';
+    document.getElementById('btnCancelarProdutoOrc').style.display = 'none';
+}
+
+function atualizarListaProdutosOrcamento() {
+    const div = document.getElementById('listaProdutosOrcamento');
+    if (!Array.isArray(produtosOrcamento) || produtosOrcamento.length === 0) {
+        div.innerHTML = '<div class="empty-state">Nenhum produto no orçamento</div>';
+        return;
+    }
+    div.innerHTML = produtosOrcamento.map(p => {
+        const nome = p.nome || 'Produto';
+        const qtd = p.quantidade || 0;
+        const custoUnit = typeof p.custoUnitario === 'number' ? p.custoUnitario : 0;
+        const perc = typeof p.percentualLucro === 'number' ? p.percentualLucro : 0;
+
+        const valorComLucroUnit = custoUnit * (1 + perc/100);
+        const valorComLucroTot = valorComLucroUnit * qtd;
+
+        return `
+          <div class="item-card">
+            <div class="item-header">
+              <strong>${nome}</strong>
+              <div class="btn-group">
+                <button class="btn btn-warning" onclick="editarProdutoOrcamento('${p._id}')">✏️</button>
+                <button class="btn btn-danger" onclick="removerProdutoOrcamento('${p._id}')">🗑️</button>
+              </div>
+            </div>
+            <div class="item-info">
+              <div><div class="item-label">Qtd</div><div class="item-value">${qtd}</div></div>
+              <div><div class="item-label">Custo unit.</div><div class="item-value">R$ ${custoUnit.toFixed(2)}</div></div>
+              <div><div class="item-label">% lucro</div><div class="item-value">${perc}%</div></div>
+              <div><div class="item-label">Valor unit. final</div><div class="item-value">R$ ${valorComLucroUnit.toFixed(2)}</div></div>
+              <div><div class="item-label">Valor total final</div><div class="item-value">R$ ${valorComLucroTot.toFixed(2)}</div></div>
+            </div>
+          </div>
+        `;
+    }).join('');
+}
+
+function removerProdutoOrcamento(id) {
+    if (!confirm('Remover este produto do orçamento?')) return;
+    produtosOrcamento = produtosOrcamento.filter(p => p._id !== id);
+    atualizarListaProdutosOrcamento();
+}
+
+function calcularOrcamento() {
+    if (!produtosOrcamento.length) {
+        alert('Adicione pelo menos um produto ao orçamento.');
+        return;
+    }
+
+    let custoTotalMateriais = 0;
+    let custoTotalFolhas = 0;
+    let valorFinalTotal = 0;
+
+    produtosOrcamento.forEach(p => {
+        const qtdProd = p.quantidade || 0;
+        const perc = typeof p.percentualLucro === 'number' ? p.percentualLucro : 0;
+        const mats = Array.isArray(p.materiais) ? p.materiais : [];
+
+        let custoBaseProduto = 0;
+        mats.forEach(m => {
+            const cm = typeof m.custoMaterial === 'number' ? m.custoMaterial : 0;
+            const cf = typeof m.custoFolhas === 'number' ? m.custoFolhas : 0;
+            custoTotalMateriais += cm * qtdProd;
+            custoTotalFolhas += cf * qtdProd;
+            custoBaseProduto += (cm + cf);
+        });
+
+        const custoTotalProduto = custoBaseProduto * qtdProd;
+        const lucro = custoTotalProduto * (perc/100);
+        valorFinalTotal += custoTotalProduto + lucro;
+    });
+
+    const custoTotalGeral = custoTotalMateriais + custoTotalFolhas;
+    const lucroTotal = valorFinalTotal - custoTotalGeral;
+
+    document.getElementById('custoTotalMateriais').textContent = 'R$ ' + custoTotalMateriais.toFixed(2);
+    document.getElementById('custoTotalFolhas').textContent = 'R$ ' + custoTotalFolhas.toFixed(2);
+    document.getElementById('lucroAplicado').textContent = 'R$ ' + lucroTotal.toFixed(2);
+    document.getElementById('valorFinalOrcamento').textContent = 'R$ ' + valorFinalTotal.toFixed(2);
+
+    document.getElementById('resultadoCalculo').style.display = 'block';
+    document.getElementById('btnGerarPDF').style.display = 'inline-block';
+    document.getElementById('resultadoCalculo').scrollIntoView({behavior:'smooth'});
+}
+
+// ========== HISTÓRICO DE ORÇAMENTOS ==========
+async function salvarOrcamentoNoHistorico() {
+    if (!produtosOrcamento.length) {
+        alert('Adicione produtos ao orçamento antes de salvar.');
+        return;
+    }
+    const cliente = document.getElementById('nomeCliente').value.trim();
+    const descricao = document.getElementById('descricaoOrcamento').value.trim() || '';
+    const idEdicao = document.getElementById('orcamentoIdEdicao').value;
+
+    if (!cliente) {
+        alert('Informe o nome do cliente.');
+        return;
+    }
+
+    const data = new Date().toLocaleString('pt-BR');
+
+    const orcamentoData = {
+        cliente,
+        descricao,
+        data,
+        itens: produtosOrcamento // O backend vai salvar essa estrutura aninhada
+    };
+
+    let result;
+    if (idEdicao) {
+        result = await fetchData('orcamentos', 'PUT', orcamentoData, idEdicao);
+        if (result) {
+            // Atualiza o item no array local após sucesso no backend
+            const index = historicoOrcamentos.findIndex(o => o._id == idEdicao);
+            if (index !== -1) historicoOrcamentos[index] = result;
+            alert('Orçamento atualizado no histórico.');
+        }
+    } else {
+        result = await fetchData('orcamentos', 'POST', orcamentoData);
+        if (result) {
+            historicoOrcamentos.unshift(result); // Adiciona o orçamento retornado pelo backend (com _id real)
+            alert('Orçamento salvo no histórico.');
+        }
+    }
+
+    if (result) {
+        atualizarHistoricoOrcamentos();
+        limparOrcamentoAtual();
+    }
+}
+
+function limparOrcamentoAtual() {
+    produtosOrcamento = [];
+    materiaisTemporarios = [];
+    document.getElementById('nomeCliente').value = '';
+    document.getElementById('descricaoOrcamento').value = '';
+    document.getElementById('orcamentoIdEdicao').value = '';
+    document.getElementById('btnSalvarOrcamento').textContent = '💾 Salvar orçamento';
+    atualizarListaProdutosOrcamento();
+    atualizarListaMateriais();
+    document.getElementById('resultadoCalculo').style.display = 'none';
+    document.getElementById('btnGerarPDF').style.display = 'none';
+}
+
+function atualizarHistoricoOrcamentos() {
+    const div = document.getElementById('listaHistoricoOrcamentos');
+    if (!historicoOrcamentos.length) {
+        div.innerHTML = '<div class="empty-state">Nenhum orçamento salvo</div>';
+        return;
+    }
+
+    div.innerHTML = historicoOrcamentos.map(o => `
+        <div class="orcamento-card">
+          <div class="orcamento-header">
+            <strong>${o.cliente}</strong>
+            <div class="btn-group">
+              <button class="btn btn-warning" onclick="carregarOrcamento('${o._id}')">✏️ Editar</button>
+              <button class="btn btn-danger" onclick="excluirOrcamento('${o._id}')">🗑️</button>
+              <button class="btn btn-info" onclick="gerarPdfOrcamento('${o._id}')">📄 PDF</button>
+            </div>
+          </div>
+          <div class="orcamento-info">
+            <div>Data: ${o.data}</div>
+            <div>Descrição: ${o.descricao || '-'}</div>
+            <div>Itens: ${o.itens ? o.itens.length : 0}</div>
+          </div>
+        </div>
+    `).join('');
+}
+
+async function carregarOrcamento(id) {
+    const orc = historicoOrcamentos.find(o => o._id === id);
+    if (!orc) {
+        alert('Orçamento não encontrado.');
+        return;
+    }
+
+    document.getElementById('nomeCliente').value = orc.cliente;
+    document.getElementById('descricaoOrcamento').value = orc.descricao;
+    document.getElementById('orcamentoIdEdicao').value = orc._id;
+
+    // Copia profunda dos itens para o orçamento atual
+    produtosOrcamento = JSON.parse(JSON.stringify(orc.itens || []));
+    // Ajusta os IDs temporários para o frontend para edição
+    produtosOrcamento.forEach(item => {
+        item._id = item._id || new mongoose.Types.ObjectId().toString(); // Garante ID único para o frontend
+        item.materiais.forEach(mat => mat._id = mat._id || new mongoose.Types.ObjectId().toString());
+    });
+
+    atualizarListaProdutosOrcamento();
+
+    document.getElementById('btnSalvarOrcamento').textContent = '💾 Atualizar orçamento';
+
+    const tabs = document.querySelectorAll('.tab');
+    const contents = document.querySelectorAll('.tab-content');
+    tabs.forEach(t => t.classList.remove('active'));
+    contents.forEach(c => c.classList.remove('active'));
+    tabs[1].classList.add('active');
+    document.getElementById('orcamento').classList.add('active');
+
+    alert('Orçamento carregado para edição.');
+}
+
+async function excluirOrcamento(id) {
+    if (!confirm('Excluir este orçamento do histórico?')) return;
+    const result = await fetchData('orcamentos', 'DELETE', null, id);
+    if (result === null) { // Sucesso (204 No Content) ou erro
+        historicoOrcamentos = historicoOrcamentos.filter(o => o._id !== id);
+        atualizarHistoricoOrcamentos();
+        alert('Orçamento removido.');
+    }
+}
+
+// ========== PDF ==========
+function gerarPDF() {
+    if (!produtosOrcamento.length) {
+        alert('Adicione produtos ao orçamento antes de gerar o PDF.');
+        return;
+    }
+    const nomeCliente = document.getElementById('nomeCliente').value.trim() || 'Cliente';
+    gerarPdfComDados(nomeCliente, produtosOrcamento);
+}
+
+function gerarPdfOrcamento(id) {
+    const orc = historicoOrcamentos.find(o => o._id === id);
+    if (!orc) {
+        alert('Orçamento não encontrado.');
+        return;
+    }
+    gerarPdfComDados(orc.cliente, orc.itens);
+}
+
+function gerarPdfComDados(nomeCliente, itens) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    const hoje = new Date();
+    const dataFormatada = hoje.toLocaleDateString('pt-BR');
+
+    doc.setFontSize(18);
+    doc.setTextColor(102, 126, 234);
+    doc.text('Orçamento', 105, 20, {align:'center'});
+
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text('Cliente: ' + nomeCliente, 14, 35);
+    doc.text('Data: ' + dataFormatada, 14, 42);
+
+    const dadosTabela = [];
+    let valorTotalGeral = 0;
+
+    itens.forEach(p => {
+        const qtd = p.quantidade || 0;
+        const custoUnit = typeof p.custoUnitario === 'number' ? p.custoUnitario : 0;
+        const perc = typeof p.percentualLucro === 'number' ? p.percentualLucro : 0;
+
+        const valorUnit = custoUnit * (1 + perc/100);
+        const valorTotal = valorUnit * qtd;
+        valorTotalGeral += valorTotal;
+
+        dadosTabela.push([
+            qtd,
+            p.nome || 'Produto',
+            'R$ ' + valorUnit.toFixed(2),
+            'R$ ' + valorTotal.toFixed(2)
+        ]);
+    });
+
+    doc.autoTable({
+        startY: 50,
+        head: [['Qtd', 'Descrição', 'Valor Unitário', 'Valor Total']],
+        body: dadosTabela,
+        headStyles: { fillColor: [102, 126, 234], textColor: 255, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [248, 249, 250] },
+        styles: { fontSize: 10, cellPadding: 3 }
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text('Valor Total: R$ ' + valorTotalGeral.toFixed(2), 14, finalY);
+
+    doc.save('orcamento_' + nomeCliente.replace(/\s/g,'_') + '.pdf');
+}
+
+// ========== INICIALIZAÇÃO ==========
+window.addEventListener('load', function() {
+    // Adiciona uma referência global para mongoose.Types.ObjectId para uso no frontend
+    // Isso é um mock para que o frontend possa gerar IDs temporários no mesmo formato do MongoDB
+    // Em um ambiente de produção real, você não faria isso, mas para este setup de arquivo único, é prático.
+    window.mongoose = {
+        Types: {
+            ObjectId: function() {
+                // Gera um ID que se parece com um ObjectId, mas é apenas uma string única
+                return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            }
+        }
+    };
+    carregarDados();
+});
+</script>
+</body>
+</html>
