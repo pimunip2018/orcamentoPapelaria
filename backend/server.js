@@ -199,7 +199,7 @@ app.delete('/orcamentos/:id', async (req, res) => {
 // Servir arquivos estáticos do frontend (seu index.html)
 // Se o frontend for um Static Site separado no Render, esta parte não é estritamente necessária
 // Mas é útil para testar localmente ou se for um serviço monolítico
-app.use(express.static('public'));
+app.use(express.static('../public')); // Caminho relativo para a pasta public
 
 // Iniciar o servidor
 app.listen(PORT, () => {
